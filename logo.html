@@ -78,7 +78,7 @@
                         dis = app.$data.weight,
                         qualified = app.$data.qualified,
                         bgcolor = app.$data.bgcolor,
-                        color = app.$data.color.match(/\d+/g).map(parseInt),
+                        color = app.$data.color.match(/\d+/g).map(x=>parseInt(x)),
                         size = Math.min(height, width),
                         width_2 = width / 2,
                         height_2 = height / 2,
@@ -90,6 +90,7 @@
                         _sqrt3 = Math.sqrt(3),
                         _1 = qualified3 * 16,
                         _3 = size * _sqrt3 / 8;
+                    console.log(color);
                     const canvas = document.createElement("canvas");
                     canvas.width = width;
                     canvas.height = height;
@@ -146,7 +147,7 @@
                                 isLef(lineList[2], conorList[2], now) &&
                                 isLef(lineList[3], conorList[3], now)
                             ) {
-                                imgdata.data.set(color, drowpos << 2);
+                                imgdata.data.set(color, drowpos<<2);
                                 finaldrow.add(drowpos);
                                 queue.push(
                                     [now[0] + 1, now[1]],
