@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+
+<head>
+    <title>FHShkl's logo generator</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/lib/theme-chalk/index.css">
+</head>
+
+<body>
+    <div id="app">
+        <el-form ref="form" :model="form" label-width="80px">
+            <el-form-item label="width and height">
+                <el-input v-model="width" placeholder="width" type="number" min="1"></el-input>
+                <el-input v-model="height" placeholder="height" type="number" min="1"></el-input>
+            </el-form-item>
+            <el-form-item label="weight">
+                <el-input v-model="weight" placeholder="weight" type="number"></el-input>
+            </el-form-item>
+            <el-form-item label="qualified">
+                <el-input v-model="qualified" placeholder="qualified" type="number"></el-input>
+            </el-form-item>
+            <el-form-item label="bgcolor">
+                <el-input v-model="bgcolor" placeholder="bgcolor"></el-input>
+            </el-form-item>
+            <el-form-item label="color">
+                <el-input v-model="color" placeholder="color"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="generate">generate</el-button>
+                <el-button @click="download">download</el-button>
+            </el-form-item>
+        </el-form>
+        <img v-if="base64" :src="base64" :download="'fhshkl-logo-'+width+'x'+height">
+    </div>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://unpkg.com/element-plus/lib/index.full.js"></script>
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    width: 1024,
+                    height: 1024,
+                    weight: 2,
+                    qualified: 65536,
+                    bgcolor: "#000000FF",
+                    color: '255,255,255,255',
+                    base64: null
+                };
+            },
+            methods: {
+                download() {
+                    const pngname='fhshkl-logo-' + app.$data.width + 'x' + app.$data.height + '.png';
+                    if (window.navigator.msSaveOrOpenBlob) {
+                        var bstr = atob(app.$data.base64.split(',')[1]);
+                        var n = bstr.length;
+                        var u8arr = new Uint8Array(n);
+                        while (n--) {
+                            u8arr[n] = bstr.charCodeAt(n);
+                        }
+                        var blob = new Blob([u8arr]);
+                        window.navigator.msSaveOrOpenBlob(blob, pngname);
+                    }
+                    else {
+                        const oa = document.createElement("a");
+                        oa.download = pngname;
+                        oa.href = app.$data.base64;
+                        oa.click();
+                    }
+                },
+                generate() {
+                    function isLef(line, pointSt, pointEd) {
+                        const x2 = pointEd[0] - pointSt[0];
+                        const y2 = pointEd[1] - pointSt[1];
+                        return line[0] * y2 > line[1] * x2;
+                    }
+                    const
+                        height = app.$data.height,
+                        width = app.$data.width,
+                        dis = app.$data.weight,
+                        qualified = app.$data.qualified,
+                        bgcolor = app.$data.bgcolor,
+                        color = app.$data.color.match(/\d+/g).map(parseInt),
+                        size = Math.min(height, width),
+                        width_2 = width / 2,
+                        height_2 = height / 2,
+                        _2qualified = 2 * qualified,
+                        _4qualified = 4 * qualified,
+                        _8qualified = 8 * qualified,
+                        qualified2 = qualified * qualified,
+                        qualified3 = qualified * qualified * qualified,
+                        _sqrt3 = Math.sqrt(3),
+                        _1 = qualified3 * 16,
+                        _3 = size * _sqrt3 / 8;
+                    const canvas = document.createElement("canvas");
+                    canvas.width = width;
+                    canvas.height = height;
+                    const canvasctx = canvas.getContext("2d");
+                    // - background
+                    canvasctx.fillStyle = bgcolor;
+                    canvasctx.fillRect(0, 0, width, height);
+                    // - drow
+                    const imgdata = canvasctx.getImageData(0, 0, width, height);
+                    const finaldrow = new Set();
+                    function drawPoint(x, y, dxp, dyp) {
+                        const _2 = Math.hypot(dxp, dyp);
+                        const dx = dis * dxp / _2;
+                        const dy = dis * dyp / _2;
+                        const conorList = [
+                            [x + dx - dy, y + dx + dy],
+                            [x - dx - dy, y + dx - dy],
+                            [x - dx + dy, y - dx - dy],
+                            [x + dx + dy, y - dx + dy]
+                        ];
+
+                        const lineList = [
+                            [-dx, -dy],
+                            [dy, -dx],
+                            [dx, dy],
+                            [-dy, dx]
+                        ];
+
+                        const prequeue = [
+                            [x, y],
+                            ...conorList
+                        ].map(point => point.map(x => Math.floor(x) + 0.5)), queue = [];
+                        for (const now of prequeue) {
+                            queue.push(
+                                now,
+                                [now[0] + 1, now[1]],
+                                [now[0] - 1, now[1]],
+                                [now[0], now[1] + 1],
+                                [now[0], now[1] - 1]
+                            );
+                        }
+
+                        while (queue.length) {
+                            const now = queue.shift();
+                            const drowx = width_2 + (now[0] - 0.5);
+                            const drowy = height_2 - (now[1] - 0.5);
+                            const drowpos = drowy * width + drowx;
+                            if (finaldrow.has(drowpos)) {
+                                continue;
+                            }
+                            if (
+                                isLef(lineList[0], conorList[0], now) &&
+                                isLef(lineList[1], conorList[1], now) &&
+                                isLef(lineList[2], conorList[2], now) &&
+                                isLef(lineList[3], conorList[3], now)
+                            ) {
+                                imgdata.data.set(color, drowpos << 2);
+                                finaldrow.add(drowpos);
+                                queue.push(
+                                    [now[0] + 1, now[1]],
+                                    [now[0] - 1, now[1]],
+                                    [now[0], now[1] + 1],
+                                    [now[0], now[1] - 1]
+                                );
+                            }
+                        }
+                    }
+                    for (let i = -qualified; i <= qualified; i++) {
+                        // - main line
+                        const dxp = i * i - qualified2;
+                        const dyp = 3 * i * i + qualified2;
+                        const x = size * i * (i * i - 3 * qualified2) * _sqrt3 / _1;
+                        const y = size * i * (i * i - qualified2) * 3 * _sqrt3 / _1;
+                        drawPoint(x, y, dxp, dyp);
+                        drawPoint(0, size * 3 * i / _8qualified, 0, 1);
+                    }
+                    for (let i = 1; i <= qualified; i++) {
+                        drawPoint(_3, -size * i / _8qualified, 0, 1);
+                        drawPoint(-_3, size * i / _8qualified, 0, 1);
+                    } canvasctx.putImageData(imgdata, 0, 0);
+                    app.$data.base64 = canvas.toDataURL();
+                }
+            }
+        }).use(ElementPlus).mount("#app");
+    </script>
+</body>
